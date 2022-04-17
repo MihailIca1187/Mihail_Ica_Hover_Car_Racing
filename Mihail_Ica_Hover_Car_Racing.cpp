@@ -5,6 +5,7 @@
 #include <TL-Engine.h>
 #include <sstream>
 #include <iostream>
+#include <vector>
 							// TL-Engine include file and namespace
 using namespace tle;
 
@@ -14,6 +15,16 @@ struct PosVector {
 	float z;
 };
 
+struct BoundingBoxCoords {
+	float minX;
+	float maxX;
+	float minY;
+	float maxY;
+	float minZ;
+	float maxZ;
+};
+
+bool collisionDetection(BoundingBoxCoords[], PosVector p, int objectsNo);
 
 
 void main()
@@ -37,6 +48,9 @@ void main()
 	const float kMouseRotation = 15.0f;
 	const float kCameraMovementSpeed = 5.0f;
 	const float playerCarRadius = 6.46;
+	const float kCheckpointXSize = 9.86159;
+	const float kCheckpointYSize = 0.00210619;
+	const float kCheckpointZSize = 1.28539;
 
 	const PosVector checkpoint1Pos = { 0.0f,0.0f,0.0f };
 	const PosVector checkpoint2Pos = { -20.0f,0.0f,120.0f };
@@ -77,9 +91,6 @@ void main()
 
 	IModel* carModel = carMesh->CreateModel(playerCar.x, playerCar.y, playerCar.z);
 
-	float playerCarX = carModel->GetX();
-	float playerCarY = carModel->GetY();
-	float playerCarZ = carModel->GetZ();
 
 	ICamera* testCamera = myEngine->CreateCamera(kTargeted);
 	testCamera->AttachToParent(carModel);
@@ -122,12 +133,12 @@ void main()
 
 		/*Checkpoint bounding volumes*/
 
-		hitBoxMinX[i] = checkpointModels[i]->GetX();
-		hitBoxMaxX[i] = checkpointModels[i]->GetX();
-		hitBoxMinY[i] = checkpointModels[i]->GetY();
-		hitBoxMaxY[i] = checkpointModels[i]->GetY();
-		hitBoxMinZ[i] = checkpointModels[i]->GetZ();
-		hitBoxMaxZ[i] = checkpointModels[i]->GetZ();
+		hitBoxMinX[i] = checkpointModels[i]->GetX() - kCheckpointXSize;
+		hitBoxMaxX[i] = checkpointModels[i]->GetX()+ kCheckpointXSize;
+		hitBoxMinY[i] = checkpointModels[i]->GetY() - kCheckpointYSize;
+		hitBoxMaxY[i] = checkpointModels[i]->GetY() + kCheckpointYSize;
+		hitBoxMinZ[i] = checkpointModels[i]->GetZ() - kCheckpointZSize;
+		hitBoxMaxZ[i] = checkpointModels[i]->GetZ() + kCheckpointZSize;
 
 	}
 
@@ -256,7 +267,7 @@ void main()
 		
 		/*Collision checks*/
 
-		for (int i = 0; i < checkpointNo; i++)
+		/*for (int i = 0; i < checkpointNo; i++)
 		{
 			if ((playerCarX > hitBoxMinX[i]) && (playerCarX < hitBoxMaxX[i])
 				&& (playerCarY > hitBoxMinY[i]) && (playerCarY < hitBoxMaxY[i])
@@ -280,7 +291,9 @@ void main()
 					
 				}
 			}
-		}
+		}*/
+
+
 		
 
 		//Key controls for playerCar
@@ -373,3 +386,15 @@ void main()
 	myEngine->Delete();
 }
 
+bool collisionDetection(BoundingBoxCoords hitBoxes[], PosVector p, int objectsNo)
+{
+	for (int i = 0; i < objectsNo; i++)
+	{
+		if ((p.x > hitBoxes[i].minX) && (p.x < hitBoxes[i].maxX)
+			&& (p.y > hitBoxes[i].minY) && (p.y < hitBoxes[i].maxY)
+			&& (p.z > hitBoxes[i].minZ) && (p.z < hitBoxes[i].maxZ))
+		{
+			return true;
+		}
+	}
+}
