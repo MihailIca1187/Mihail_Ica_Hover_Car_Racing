@@ -54,7 +54,9 @@ void main()
 	const float kCheckpointYSize = 0.00210619;
 	const float kCheckpointZSize = 1.28539;
 
-	int checkpointNumbers[kCheckpointNo] = { 0,1,2 }; // Array holding the int values to be used with each checkpoint
+	const float kCameraRotation = kRotation / 5;
+
+	int checkpointNumbers[kCheckpointNo] = { 0,1,2 }; // Array holding the int values used to identify each checkpoint
 
 	const PosVector checkpoint1Pos = { 0.0f,0.0f,0.0f };
 	const PosVector checkpoint2Pos = { -20.0f,0.0f,120.0f };
@@ -102,14 +104,17 @@ void main()
 
 	const PosVector cameraLocalCoordinates = { 0.0f,15.0f,-25.0f };
 
-	testCamera->RotateLocalX(kRotation / 5);
+	testCamera->RotateLocalX(kCameraRotation);
 	testCamera->SetLocalPosition(cameraLocalCoordinates.x, cameraLocalCoordinates.y, cameraLocalCoordinates.z);
 
 	IMesh* groundMesh = myEngine->LoadMesh("ground.x");
 	IModel* ground = groundMesh->CreateModel();
 
 	ISprite* backdrop = myEngine->CreateSprite("RedGlow.jpg", 0, 500);
-	IFont* font = myEngine->LoadFont("Sans Sherif");
+	IFont* font24 = myEngine->LoadFont("Sans Sherif");
+	IFont* font30 = myEngine->LoadFont("Sans Sherif", 30);
+	IFont* font36 = myEngine->LoadFont("Sans Sherif", 36);
+	IFont* font42 = myEngine->LoadFont("Sans Sherif", 42);
 
 	float hitBoxMinX[kCheckpointNo];
 	float hitBoxMaxX[kCheckpointNo];
@@ -198,7 +203,7 @@ void main()
 		if (gameState == Waiting)
 		{
 			timerText << "Hit Space to Start";
-			font->Draw(timerText.str(), 0, 600, kBlack);
+			font24->Draw(timerText.str(), 0, 600, kBlack);
 
 			gameStateText << "Status: Waiting ";
 			movementSpeed = 0;
@@ -214,27 +219,30 @@ void main()
 			{
 
 				timerText << "3";
-				font->Draw(timerText.str(), 0, 600, kBlack);
+				font24->Draw(timerText.str(), 0, 600, kBlack);
+				
 			}
 
 			if (timePassed < 2 && timePassed > 1)
 			{
 
 				timerText << "2";
-				font->Draw(timerText.str(), 0, 600, kBlack);
+				font30->Draw(timerText.str(), 0, 600, kBlack);
 			}
 
 			if (timePassed < 3 && timePassed > 2)
 			{
 
 				timerText << "1";
-				font->Draw(timerText.str(), 0, 600, kBlack);
+				font36->Draw(timerText.str(), 0, 600, kBlack);
+				
 			}
 
 			if (timePassed < 4 && timePassed > 3)
 			{
 				timerText << "GO";
-				font->Draw(timerText.str(), 0, 600, kBlack);
+				font42->Draw(timerText.str(), 0, 600, kBlack);
+				
 				
 				
 			}
@@ -266,6 +274,28 @@ void main()
 				debugText << "Race Complete";
 				gameState = GameWon;
 			}
+
+			/*Collision checks*/
+
+			int checkPointCrossed = collisionDetection(checkpointHitBox, playerCarVector, kCheckpointNo);
+
+			if (checkPointCrossed == checkpointNumbers[0] && raceState == StageZeroComplete)
+			{
+				raceState = StageOneComplete;
+
+			}
+
+			else if (checkPointCrossed == checkpointNumbers[1] && raceState == StageOneComplete)
+			{
+				raceState = StageTwoComplete;
+
+			}
+
+			else if (checkPointCrossed == checkpointNumbers[2] && raceState == StageTwoComplete)
+			{
+				raceState = StageThreeComplete;
+
+			}
 		}
 
 		if (gameState == GameWon)
@@ -274,27 +304,7 @@ void main()
 			
 		}
 		
-		/*Collision checks*/
-
-		int checkPointCrossed = collisionDetection(checkpointHitBox, playerCarVector, kCheckpointNo);
-
-		if (checkPointCrossed == checkpointNumbers[0] && raceState == StageZeroComplete)
-		{
-			raceState = StageOneComplete;
-			
-		}
 		
-		else if (checkPointCrossed == checkpointNumbers[1] && raceState == StageOneComplete)
-		{
-			raceState = StageTwoComplete;
-			
-		}
-		
-		else if (checkPointCrossed == checkpointNumbers[2] && raceState == StageTwoComplete)
-		{
-			raceState = StageThreeComplete;
-			
-		}
 			
 		
 
@@ -368,16 +378,16 @@ void main()
 
 		
 		/*debugText << "GameState is: " << gameState;*/
-		font->Draw(debugText.str(), 0, 550, kBlack);
+		font24->Draw(debugText.str(), 0, 550, kBlack);
 		
 		
-		font->Draw(gameStateText.str(), 0, 500, kBlack);
+		font24->Draw(gameStateText.str(), 0, 500, kBlack);
 		
 		if (myEngine->KeyHit(Key_1))
 		{
 			testCamera->SetLocalPosition(cameraLocalCoordinates.x, cameraLocalCoordinates.y, cameraLocalCoordinates.z);
 			testCamera->ResetOrientation();
-			testCamera->RotateLocalX(kRotation / 5);
+			testCamera->RotateLocalX(kCameraRotation);
 		}
 
 		if (myEngine->KeyHit(Key_Escape))
