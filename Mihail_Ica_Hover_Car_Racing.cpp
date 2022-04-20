@@ -24,8 +24,9 @@ struct BoundingBoxCoords {
 	float maxZ;
 };
 
-int collisionDetection(BoundingBoxCoords[], PosVector p, int objectsNo);
+int CheckpointCompletion(BoundingBoxCoords[], PosVector p, int objectsNo);
 
+bool SphereToSphereCollision(PosVector car, float radius1, PosVector obj, float radius2);
 
 void main()
 {
@@ -56,7 +57,7 @@ void main()
 
 	const float kCameraRotation = kRotation / 5;
 
-	int checkpointNumbers[kCheckpointNo] = { 0,1,2 }; // Array holding the int values used to identify each checkpoint
+	int checkpointIdentity[kCheckpointNo] = { 0,1,2 }; // Array holding the int values used to identify each checkpoint
 
 	const PosVector checkpoint1Pos = { 0.0f,0.0f,0.0f };
 	const PosVector checkpoint2Pos = { -20.0f,0.0f,120.0f };
@@ -136,7 +137,7 @@ void main()
 	for (int i = 0; i < kCheckpointNo; i++)
 	{
 		checkpointModels[i] = checkpointMesh->CreateModel(checkpointsArray[i].x, checkpointsArray[i].y, checkpointsArray[i].z);
-		if (i == checkpointNumbers[1])
+		if (i == checkpointIdentity[1])
 		{
 			checkpointModels[i]->RotateLocalY(kRotation);
 		}
@@ -277,25 +278,30 @@ void main()
 
 			/*Collision checks*/
 
-			int checkPointCrossed = collisionDetection(checkpointHitBox, playerCarVector, kCheckpointNo);
 
-			if (checkPointCrossed == checkpointNumbers[0] && raceState == StageZeroComplete)
+			/*Checkpoint Progression checks*/
+
+			int checkPointCrossed = CheckpointCompletion(checkpointHitBox, playerCarVector, kCheckpointNo);
+
+			if (checkPointCrossed == checkpointIdentity[0] && raceState == StageZeroComplete)
 			{
 				raceState = StageOneComplete;
 
 			}
 
-			else if (checkPointCrossed == checkpointNumbers[1] && raceState == StageOneComplete)
+			else if (checkPointCrossed == checkpointIdentity[1] && raceState == StageOneComplete)
 			{
 				raceState = StageTwoComplete;
 
 			}
 
-			else if (checkPointCrossed == checkpointNumbers[2] && raceState == StageTwoComplete)
+			else if (checkPointCrossed == checkpointIdentity[2] && raceState == StageTwoComplete)
 			{
 				raceState = StageThreeComplete;
 
 			}
+
+
 		}
 
 		if (gameState == GameWon)
@@ -401,7 +407,7 @@ void main()
 	myEngine->Delete();
 }
 
-int collisionDetection(BoundingBoxCoords hitBoxes[], PosVector p, int objectsNo)
+int CheckpointCompletion(BoundingBoxCoords hitBoxes[], PosVector p, int objectsNo)
 {
 	for (int i = 0; i < objectsNo; i++)
 	{
@@ -412,4 +418,22 @@ int collisionDetection(BoundingBoxCoords hitBoxes[], PosVector p, int objectsNo)
 			return i;
 		}
 	}
+}
+
+bool SphereToSphereCollision(PosVector car, float radius1, PosVector obj, float radius2, int objectsNo)
+{
+	float distX = obj.x - car.x;
+	float distY = obj.y - car.y;
+	float distZ = obj.z - car.z;
+	float distance = sqrt(distX * distX + distY * distY + distZ * distZ);
+	bool collision;
+
+	if (distance < (radius1 + radius2)) {
+		collision = true;
+	}
+	else {
+		collision = false;
+	}
+
+	return collision;
 }
