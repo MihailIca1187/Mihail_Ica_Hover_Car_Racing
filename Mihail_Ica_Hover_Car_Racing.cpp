@@ -24,9 +24,12 @@ struct BoundingBoxCoords {
 	float maxZ;
 };
 
+
 int CheckpointCompletion(BoundingBoxCoords[], PosVector p, int objectsNo);
 
 bool SphereToSphereCollision(PosVector car, float radius1, PosVector obj, float radius2);
+
+bool sphereToBoxCollision(PosVector car, BoundingBoxCoords hitBoxes[], int objectsNo);
 
 void main()
 {
@@ -45,15 +48,27 @@ void main()
 	const int kCheckpointNo = 3;
 	const int kIsleNo = 6;
 	const int kWallNo = 3;
-	const float kRotation = 90.0f;
-	const float kMovementSpeed = 50.0f;
+	const int kRotation = 90;
+	const int kMovementSpeed = 50;
 	const int kNegativeDirection = -1;
-	const float kMouseRotation = 15.0f;
-	const float kCameraMovementSpeed = 5.0f;
-	const float kPlayerCarRadius = 6.46;
-	const float kCheckpointXSize = 9.86159;
-	const float kCheckpointYSize = 0.00210619;
-	const float kCheckpointZSize = 1.28539;
+	const int kMouseRotation = 15;
+	const int kCameraMovementSpeed = 5;
+	const float kPlayerCarRadius = 6.46f;
+	const float kCheckpointXSize = 9.86159f;
+	const float kCheckpointYSize = 0.00210619f;
+	const float kCheckpointZSize = 1.28539f;
+
+	const float kWallXSize = 0.934082f;
+	const float kWallYSize = 0.000674248f;
+	const float kWallZSize = 4.83559f;
+
+	const float kIsleXSize = 2.67529f;
+	const float kIsleYSize = 0.0178144f;
+	const float kIsleZSize = 3.41748f;
+
+	const int kStrutsNo = 6;
+
+	const float kMarginOfError = 0.5f;
 
 	const float kCameraRotation = kRotation / 5;
 
@@ -79,6 +94,42 @@ void main()
 	const PosVector wall3 = { 0.0f,0.0f,130.0f };
 
 	PosVector wallsArray[kWallNo] = { wall1,wall2,wall3 };
+
+	BoundingBoxCoords wallsBoundingBoxes[kWallNo];
+
+	BoundingBoxCoords isleBoundingBoxes[kIsleNo];
+
+	for (int i = 0; i < kWallNo; i++)
+	{
+		if(i == 0 || i == 1)
+		wallsBoundingBoxes[i].minX = wallsArray[i].x - kPlayerCarRadius;
+		wallsBoundingBoxes[i].maxX = wallsArray[i].x + kPlayerCarRadius;
+		wallsBoundingBoxes[i].minY = wallsArray[i].y - kPlayerCarRadius;
+		wallsBoundingBoxes[i].maxY = wallsArray[i].y + kPlayerCarRadius;
+		wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius;
+		wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius;
+
+		if (i == 2)
+		{
+		wallsBoundingBoxes[i].minX = wallsArray[i].x - kPlayerCarRadius;
+		wallsBoundingBoxes[i].maxX = wallsArray[i].x + kPlayerCarRadius;
+		wallsBoundingBoxes[i].minY = wallsArray[i].y - kPlayerCarRadius;
+		wallsBoundingBoxes[i].maxY = wallsArray[i].y + kPlayerCarRadius;
+		wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius;
+		wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius;
+		}
+	}
+
+	for (int i = 0; i < kIsleNo; i++)
+	{
+		isleBoundingBoxes[i].minX = islesArray[i].x - kPlayerCarRadius;
+		isleBoundingBoxes[i].maxX = islesArray[i].x + kPlayerCarRadius;
+		isleBoundingBoxes[i].minY = islesArray[i].y - kPlayerCarRadius;
+		isleBoundingBoxes[i].maxY = islesArray[i].y + kPlayerCarRadius;
+		isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadius;
+		isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadius;
+
+	}
 
 	IMesh* checkpointMesh = myEngine->LoadMesh("Checkpoint.x");
 	IModel* checkpointModels[kCheckpointNo];
@@ -137,6 +188,7 @@ void main()
 	for (int i = 0; i < kCheckpointNo; i++)
 	{
 		checkpointModels[i] = checkpointMesh->CreateModel(checkpointsArray[i].x, checkpointsArray[i].y, checkpointsArray[i].z);
+
 		if (i == checkpointIdentity[1])
 		{
 			checkpointModels[i]->RotateLocalY(kRotation);
@@ -156,6 +208,8 @@ void main()
 	for (int i = 0; i < kIsleNo; i++)
 	{
 		isleModels[i] = isleMesh->CreateModel(islesArray[i].x, islesArray[i].y, islesArray[i].z);
+
+
 		if (i == 4 || i == 5)
 		{
 			isleModels[i]->RotateLocalY(kRotation);
@@ -165,6 +219,8 @@ void main()
 	for (int i = 0; i < kWallNo; i++)
 	{
 		wallModels[i] = wallMesh->CreateModel(wallsArray[i].x, wallsArray[i].y, wallsArray[i].z);
+
+
 		if (i == 2)
 		{
 			wallModels[i]->RotateLocalY(kRotation);
@@ -173,9 +229,7 @@ void main()
 
 	float timePassed = 0.0f;
 
-	
-
-	
+	bool collision;
 	
 
 	myEngine->Timer();
@@ -185,21 +239,26 @@ void main()
 		// Draw the scene
 		myEngine->DrawScene();
 		float frameTime = myEngine->Timer();
-		
+
 		/**** Update your scene each frame here ****/
 		timePassed += frameTime;
 
+
+		float oldPlayerCarX = carModel->GetX();
+		float oldPlayerCarY = carModel->GetY();
+		float oldPlayerCarZ = carModel->GetZ();
 
 		float playerCarX = carModel->GetX();
 		float playerCarY = carModel->GetY();
 		float playerCarZ = carModel->GetZ();
 
-		PosVector playerCarVector = { playerCarX, playerCarY, playerCarZ };		
+		PosVector playerCarVector = { playerCarX, playerCarY, playerCarZ };
 
 		stringstream gameStateText;
 		stringstream timerText;
 		stringstream debugText;
-		
+		stringstream debugText2;
+
 
 		if (gameState == Waiting)
 		{
@@ -208,20 +267,20 @@ void main()
 
 			gameStateText << "Status: Waiting ";
 			movementSpeed = 0;
-			
+
 		}
 
 		if (gameState == Countdown)
 		{
 			gameStateText << "Status: Countdown";
-			
+
 
 			if (timePassed < 1)
 			{
 
 				timerText << "3";
 				font24->Draw(timerText.str(), 0, 600, kBlack);
-				
+
 			}
 
 			if (timePassed < 2 && timePassed > 1)
@@ -236,16 +295,16 @@ void main()
 
 				timerText << "1";
 				font36->Draw(timerText.str(), 0, 600, kBlack);
-				
+
 			}
 
 			if (timePassed < 4 && timePassed > 3)
 			{
 				timerText << "GO";
 				font42->Draw(timerText.str(), 0, 600, kBlack);
-				
-				
-				
+
+
+
 			}
 			if (timePassed < 5 && timePassed > 4)
 			{
@@ -301,19 +360,33 @@ void main()
 
 			}
 
+			/* Wall and isles collision checks */
+
+			
+
+			if (sphereToBoxCollision(playerCarVector, isleBoundingBoxes, kIsleNo))
+			{
+				debugText << "Crashed!!!";
+				carModel->SetPosition(oldPlayerCarX, oldPlayerCarY, oldPlayerCarZ);
+			}
+
+
+			if (sphereToBoxCollision(playerCarVector, wallsBoundingBoxes, kWallNo))
+			{
+				debugText << "Crashed!!!";
+				carModel->SetPosition(oldPlayerCarX, oldPlayerCarY, oldPlayerCarZ);
+				
+			}
+
+			/*if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius,)*/
 
 		}
 
 		if (gameState == GameWon)
 		{
 			gameStateText << "Status: GameWon";
-			
-		}
-		
-		
-			
-		
 
+		}
 
 		
 
@@ -336,6 +409,19 @@ void main()
 		if (myEngine->KeyHeld(Key_D))
 		{
 			carModel->RotateLocalY(movementSpeed * frameTime);
+		}
+
+		if (myEngine->KeyHit(Key_Space))
+		{
+
+			if (gameState == Waiting)
+			{
+				timePassed = 0;
+
+				gameState = Countdown;
+
+
+			}
 		}
 
 
@@ -362,19 +448,6 @@ void main()
 
 		
 
-		if (myEngine->KeyHit(Key_Space))
-		{
-			
-			if (gameState == Waiting)
-			{
-				timePassed = 0;
-
-				gameState = Countdown;
-
-				
-			}
-		}
-
 		//Mouse controls for the camera
 		int mouseMoveX = myEngine->GetMouseMovementX();
 		testCamera->RotateLocalY(mouseMoveX * kMouseRotation * frameTime);
@@ -382,11 +455,7 @@ void main()
 		int mouseMoveY = myEngine->GetMouseMovementY();
 		testCamera->RotateLocalX(mouseMoveY * kMouseRotation * frameTime);
 
-		
-		/*debugText << "GameState is: " << gameState;*/
-		font24->Draw(debugText.str(), 0, 550, kBlack);
-		
-		
+		font24->Draw(debugText.str(), 0, 650, kBlack);
 		font24->Draw(gameStateText.str(), 0, 500, kBlack);
 		
 		if (myEngine->KeyHit(Key_1))
@@ -425,6 +494,7 @@ bool SphereToSphereCollision(PosVector car, float radius1, PosVector obj, float 
 	float distX = obj.x - car.x;
 	float distY = obj.y - car.y;
 	float distZ = obj.z - car.z;
+
 	float distance = sqrt(distX * distX + distY * distY + distZ * distZ);
 	bool collision;
 
@@ -437,3 +507,22 @@ bool SphereToSphereCollision(PosVector car, float radius1, PosVector obj, float 
 
 	return collision;
 }
+
+bool sphereToBoxCollision(PosVector car, BoundingBoxCoords hitBoxes[], int objectsNo)
+{
+	bool collision = false;
+
+	for (int i = 0; i < objectsNo; i++)
+	{
+		if ((car.x > hitBoxes[i].minX) && (car.x < hitBoxes[i].maxX)
+			&& (car.y > hitBoxes[i].minY) && (car.y < hitBoxes[i].maxY)
+			&& (car.z > hitBoxes[i].minZ) && (car.z < hitBoxes[i].maxZ))
+		{
+			collision = true;
+		}
+	}
+
+	return collision;
+
+}
+
