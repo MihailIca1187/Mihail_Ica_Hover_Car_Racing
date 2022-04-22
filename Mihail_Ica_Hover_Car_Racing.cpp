@@ -49,11 +49,11 @@ void main()
 	const int kIsleNo = 6;
 	const int kWallNo = 3;
 	const int kRotation = 90;
-	const int kMovementSpeed = 50;
+	const int kMovementSpeed = 90;
 	const int kNegativeDirection = -1;
 	const int kMouseRotation = 15;
 	const int kCameraMovementSpeed = 5;
-	const float kPlayerCarRadius = 6.46f;
+	const float kPlayerCarRadius = 6.46f / 3;
 	const float kCheckpointXSize = 9.86159f;
 	const float kCheckpointYSize = 0.00210619f;
 	const float kCheckpointZSize = 1.28539f;
@@ -71,6 +71,8 @@ void main()
 	const float kMarginOfError = 0.5f;
 
 	const float kCameraRotation = kRotation / 5;
+
+	const float strutSpace = 8.7f;
 
 	int checkpointIdentity[kCheckpointNo] = { 0,1,2 }; // Array holding the int values used to identify each checkpoint
 
@@ -102,32 +104,46 @@ void main()
 	for (int i = 0; i < kWallNo; i++)
 	{
 		if(i == 0 || i == 1)
-		wallsBoundingBoxes[i].minX = wallsArray[i].x - kPlayerCarRadius;
-		wallsBoundingBoxes[i].maxX = wallsArray[i].x + kPlayerCarRadius;
-		wallsBoundingBoxes[i].minY = wallsArray[i].y - kPlayerCarRadius;
-		wallsBoundingBoxes[i].maxY = wallsArray[i].y + kPlayerCarRadius;
-		wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius;
-		wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius;
+		wallsBoundingBoxes[i].minX = wallsArray[i].x - kPlayerCarRadius - kMarginOfError;
+		wallsBoundingBoxes[i].maxX = wallsArray[i].x + kPlayerCarRadius + kMarginOfError;
+		wallsBoundingBoxes[i].minY = wallsArray[i].y - kPlayerCarRadius - kMarginOfError;
+		wallsBoundingBoxes[i].maxY = wallsArray[i].y + kPlayerCarRadius + kMarginOfError;
+		wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius - kMarginOfError;
+		wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius + kMarginOfError;
 
 		if (i == 2)
 		{
-		wallsBoundingBoxes[i].minX = wallsArray[i].x - kPlayerCarRadius;
-		wallsBoundingBoxes[i].maxX = wallsArray[i].x + kPlayerCarRadius;
-		wallsBoundingBoxes[i].minY = wallsArray[i].y - kPlayerCarRadius;
-		wallsBoundingBoxes[i].maxY = wallsArray[i].y + kPlayerCarRadius;
-		wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius;
-		wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius;
+		wallsBoundingBoxes[i].minX = wallsArray[i].x - kPlayerCarRadius - kMarginOfError;
+		wallsBoundingBoxes[i].maxX = wallsArray[i].x + kPlayerCarRadius + kMarginOfError;
+		wallsBoundingBoxes[i].minY = wallsArray[i].y - kPlayerCarRadius - kMarginOfError;
+		wallsBoundingBoxes[i].maxY = wallsArray[i].y + kPlayerCarRadius + kMarginOfError;
+		wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius - kMarginOfError;
+		wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius + kMarginOfError;
 		}
 	}
 
 	for (int i = 0; i < kIsleNo; i++)
 	{
-		isleBoundingBoxes[i].minX = islesArray[i].x - kPlayerCarRadius;
-		isleBoundingBoxes[i].maxX = islesArray[i].x + kPlayerCarRadius;
-		isleBoundingBoxes[i].minY = islesArray[i].y - kPlayerCarRadius;
-		isleBoundingBoxes[i].maxY = islesArray[i].y + kPlayerCarRadius;
-		isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadius;
-		isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadius;
+		if (i < 4)
+		{
+			isleBoundingBoxes[i].minX = islesArray[i].x - kPlayerCarRadius - kMarginOfError;
+			isleBoundingBoxes[i].maxX = islesArray[i].x + kPlayerCarRadius + kMarginOfError;
+			isleBoundingBoxes[i].minY = islesArray[i].y - kPlayerCarRadius - kMarginOfError;
+			isleBoundingBoxes[i].maxY = islesArray[i].y + kPlayerCarRadius + kMarginOfError;
+			isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadius - kMarginOfError;
+			isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadius + kMarginOfError;
+		}
+		
+
+		if (i >= 4)
+		{
+			isleBoundingBoxes[i].minX = islesArray[i].x - kPlayerCarRadius;
+			isleBoundingBoxes[i].maxX = islesArray[i].x + kPlayerCarRadius;
+			isleBoundingBoxes[i].minY = islesArray[i].y - kPlayerCarRadius;
+			isleBoundingBoxes[i].maxY = islesArray[i].y + kPlayerCarRadius;
+			isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadius;
+			isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadius;
+		}
 
 	}
 
@@ -148,6 +164,7 @@ void main()
 	IMesh* carMesh = myEngine->LoadMesh("hovercar.x");
 
 	IModel* carModel = carMesh->CreateModel(playerCar.x, playerCar.y, playerCar.z);
+	carModel->Scale(0.2f);
 
 	BoundingBoxCoords checkpointHitBox[kCheckpointNo];
 
@@ -160,6 +177,7 @@ void main()
 	testCamera->SetLocalPosition(cameraLocalCoordinates.x, cameraLocalCoordinates.y, cameraLocalCoordinates.z);
 
 	IMesh* groundMesh = myEngine->LoadMesh("ground.x");
+
 	IModel* ground = groundMesh->CreateModel();
 
 	ISprite* backdrop = myEngine->CreateSprite("RedGlow.jpg", 0, 500);
@@ -194,7 +212,7 @@ void main()
 			checkpointModels[i]->RotateLocalY(kRotation);
 		}
 
-		/*Checkpoint bounding volumes*/
+		/*Checkpoint progression bounding volumes*/
 
 		checkpointHitBox[i].minX = checkpointModels[i]->GetX() - kCheckpointXSize;
 		checkpointHitBox[i].maxX = checkpointModels[i]->GetX()+ kCheckpointXSize;
@@ -230,6 +248,10 @@ void main()
 	float timePassed = 0.0f;
 
 	bool collision;
+
+	float oldPlayerCarX;
+	float oldPlayerCarY;
+	float oldPlayerCarZ;
 	
 
 	myEngine->Timer();
@@ -244,9 +266,9 @@ void main()
 		timePassed += frameTime;
 
 
-		float oldPlayerCarX = carModel->GetX();
-		float oldPlayerCarY = carModel->GetY();
-		float oldPlayerCarZ = carModel->GetZ();
+		oldPlayerCarX = carModel->GetX();
+		oldPlayerCarY = carModel->GetY();
+		oldPlayerCarZ = carModel->GetZ();
 
 		float playerCarX = carModel->GetX();
 		float playerCarY = carModel->GetY();
@@ -259,6 +281,8 @@ void main()
 		stringstream debugText;
 		stringstream debugText2;
 
+		/* Game States */
+		///////////////////////////////////
 
 		if (gameState == Waiting)
 		{
@@ -335,10 +359,11 @@ void main()
 				gameState = GameWon;
 			}
 
-			/*Collision checks*/
+			/* Collision checks */
+			///////////////////////////////////
 
 
-			/*Checkpoint Progression checks*/
+			/* Checkpoint Progression checks */
 
 			int checkPointCrossed = CheckpointCompletion(checkpointHitBox, playerCarVector, kCheckpointNo);
 
@@ -378,7 +403,23 @@ void main()
 				
 			}
 
-			/*if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius,)*/
+			/* Checkpoint strut collision checks */
+
+			float rightStrutX = checkpoint1Pos.x + strutSpace;
+			float leftStrutX = checkpoint1Pos.x - strutSpace;
+
+			PosVector rightStrut = { rightStrutX, 0.0f, checkpoint1Pos.z };
+			PosVector leftStrut = { leftStrutX, 0.0f, checkpoint1Pos.z };
+
+			if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, rightStrut, 1.0f))
+			{
+				debugText << "Crashed!!!";
+			}
+
+			if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, leftStrut, 1.0f))
+			{
+				debugText << "Crashed!!!";
+			}
 
 		}
 
@@ -489,13 +530,14 @@ int CheckpointCompletion(BoundingBoxCoords hitBoxes[], PosVector p, int objectsN
 	}
 }
 
-bool SphereToSphereCollision(PosVector car, float radius1, PosVector obj, float radius2, int objectsNo)
+bool SphereToSphereCollision(PosVector car, float radius1, PosVector obj, float radius2)
 {
 	float distX = obj.x - car.x;
 	float distY = obj.y - car.y;
 	float distZ = obj.z - car.z;
 
 	float distance = sqrt(distX * distX + distY * distY + distZ * distZ);
+
 	bool collision;
 
 	if (distance < (radius1 + radius2)) {
