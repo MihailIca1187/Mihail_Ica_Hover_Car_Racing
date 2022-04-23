@@ -54,7 +54,7 @@ void main()
 	const int kMouseRotation = 15;
 	const int kCameraMovementSpeed = 5;
 	const float kPlayerCarRadius = 6.46f / 3;
-	const float kCheckpointXSize = 9.86159f;
+	const float kCheckpointXSize = 9.86159f - 1;
 	const float kCheckpointYSize = 0.00210619f;
 	const float kCheckpointZSize = 1.28539f;
 
@@ -137,13 +137,13 @@ void main()
 
 		if (i >= 4)
 		{
-			isleBoundingBoxes[i].minX = islesArray[i].x - kPlayerCarRadius;
-			isleBoundingBoxes[i].maxX = islesArray[i].x + kPlayerCarRadius;
-			isleBoundingBoxes[i].minY = islesArray[i].y - kPlayerCarRadius;
-			isleBoundingBoxes[i].maxY = islesArray[i].y + kPlayerCarRadius;
-			isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadius;
-			isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadius;
-		}
+			isleBoundingBoxes[i].minX = islesArray[i].x - kPlayerCarRadius - kMarginOfError;
+			isleBoundingBoxes[i].maxX = islesArray[i].x + kPlayerCarRadius + kMarginOfError;
+			isleBoundingBoxes[i].minY = islesArray[i].y - kPlayerCarRadius - kMarginOfError;
+			isleBoundingBoxes[i].maxY = islesArray[i].y + kPlayerCarRadius + kMarginOfError;
+			isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadius - kMarginOfError;
+			isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadius + kMarginOfError;
+		}																   
 
 	}
 
@@ -213,13 +213,26 @@ void main()
 		}
 
 		/*Checkpoint progression bounding volumes*/
+		if (i == checkpointIdentity[0] || i == checkpointIdentity[2])
+		{
+			checkpointHitBox[i].minX = checkpointModels[i]->GetX() - kCheckpointXSize;
+			checkpointHitBox[i].maxX = checkpointModels[i]->GetX() + kCheckpointXSize;
+			checkpointHitBox[i].minY = checkpointModels[i]->GetY() - kCheckpointYSize;
+			checkpointHitBox[i].maxY = checkpointModels[i]->GetY() + kCheckpointYSize;
+			checkpointHitBox[i].minZ = checkpointModels[i]->GetZ() - kCheckpointZSize;
+			checkpointHitBox[i].maxZ = checkpointModels[i]->GetZ() + kCheckpointZSize;
+		}
 
-		checkpointHitBox[i].minX = checkpointModels[i]->GetX() - kCheckpointXSize;
-		checkpointHitBox[i].maxX = checkpointModels[i]->GetX()+ kCheckpointXSize;
-		checkpointHitBox[i].minY = checkpointModels[i]->GetY() - kCheckpointYSize;
-		checkpointHitBox[i].maxY = checkpointModels[i]->GetY() + kCheckpointYSize;
-		checkpointHitBox[i].minZ = checkpointModels[i]->GetZ() - kCheckpointZSize;
-		checkpointHitBox[i].maxZ = checkpointModels[i]->GetZ() + kCheckpointZSize;
+		if (i == checkpointIdentity[1])
+		{
+			checkpointHitBox[i].minX = checkpointModels[i]->GetX() - kCheckpointZSize;
+			checkpointHitBox[i].maxX = checkpointModels[i]->GetX() + kCheckpointZSize;
+			checkpointHitBox[i].minY = checkpointModels[i]->GetY() - kCheckpointYSize;
+			checkpointHitBox[i].maxY = checkpointModels[i]->GetY() + kCheckpointYSize;
+			checkpointHitBox[i].minZ = checkpointModels[i]->GetZ() - kCheckpointXSize;
+			checkpointHitBox[i].maxZ = checkpointModels[i]->GetZ() + kCheckpointXSize;
+		}
+		
 
 	}
 
@@ -249,10 +262,43 @@ void main()
 
 	bool collision;
 
-	float oldPlayerCarX;
-	float oldPlayerCarY;
-	float oldPlayerCarZ;
-	
+	float rightStrutX[kCheckpointNo];
+	float leftStrutX[kCheckpointNo];
+
+	for (int i = 0; i < kCheckpointNo; i++)
+	{
+		if (i == 0 || i == 2 )
+		{
+			rightStrutX[i] = checkpointsArray[i].x + strutSpace;
+			leftStrutX[i] = checkpointsArray[i].x - strutSpace;
+		}
+		else if (i == 1)
+		{
+			rightStrutX[i] = checkpointsArray[i].x;
+			leftStrutX[i] = checkpointsArray[i].x;
+		}
+		
+	}
+
+	PosVector rightStrut[kCheckpointNo];
+	PosVector leftStrut[kCheckpointNo];
+
+	for (int i = 0; i < kCheckpointNo; i++)
+	{
+		if (i == 0 || i == 2)
+		{
+			rightStrut[i] = { rightStrutX[i], 0.0f, checkpointsArray[i].z };
+			leftStrut[i] = { leftStrutX[i], 0.0f, checkpointsArray[i].z };
+		}
+
+		if (i == 1)
+		{
+			rightStrut[i] = { rightStrutX[i], 0.0f, (checkpointsArray[i].z + strutSpace)};
+			leftStrut[i] = { leftStrutX[i], 0.0f, (checkpointsArray[i].z - strutSpace)};
+		}
+
+	}
+
 
 	myEngine->Timer();
 	// The main game loop, repeat until engine is stopped
@@ -264,11 +310,6 @@ void main()
 
 		/**** Update your scene each frame here ****/
 		timePassed += frameTime;
-
-
-		oldPlayerCarX = carModel->GetX();
-		oldPlayerCarY = carModel->GetY();
-		oldPlayerCarZ = carModel->GetZ();
 
 		float playerCarX = carModel->GetX();
 		float playerCarY = carModel->GetY();
@@ -392,40 +433,42 @@ void main()
 			if (sphereToBoxCollision(playerCarVector, isleBoundingBoxes, kIsleNo))
 			{
 				debugText << "Crashed!!!";
-				carModel->SetPosition(oldPlayerCarX, oldPlayerCarY, oldPlayerCarZ);
+				
 			}
 
 
 			if (sphereToBoxCollision(playerCarVector, wallsBoundingBoxes, kWallNo))
 			{
 				debugText << "Crashed!!!";
-				carModel->SetPosition(oldPlayerCarX, oldPlayerCarY, oldPlayerCarZ);
+				
 				
 			}
 
 			/* Checkpoint strut collision checks */
 
-			float rightStrutX = checkpoint1Pos.x + strutSpace;
-			float leftStrutX = checkpoint1Pos.x - strutSpace;
-
-			PosVector rightStrut = { rightStrutX, 0.0f, checkpoint1Pos.z };
-			PosVector leftStrut = { leftStrutX, 0.0f, checkpoint1Pos.z };
-
-			if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, rightStrut, 1.0f))
+			
+			
+			
+			for (int i = 0; i < kCheckpointNo; i++)
 			{
-				debugText << "Crashed!!!";
-			}
+				if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, rightStrut[i], 1.0f))
+				{
+					debugText << "Crashed!!!";
+				}
 
-			if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, leftStrut, 1.0f))
-			{
-				debugText << "Crashed!!!";
+				if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, leftStrut[i], 1.0f))
+				{
+					debugText << "Crashed!!!";
+				}
 			}
-
+			
+			
 		}
 
 		if (gameState == GameWon)
 		{
 			gameStateText << "Status: GameWon";
+			carModel->MoveY(0.0001);
 
 		}
 
