@@ -59,6 +59,7 @@ void main()
 	const int kCameraMovementSpeed = 5;
 
 	// Object dimensions (originally obtained from mesh files)
+	const float kPlayerCarOriginal = 6.46f;
 	const float kPlayerCarRadiusIsles = 6.46f/2;
 	const float kPlayerCarRadius = 6.46f / 3;
 	const float kCheckpointXSize = 9.86159f - 1;
@@ -76,6 +77,8 @@ void main()
 	const float kTankDiameter = 1.5f;
 	const int kTankHeight = 16;
 	const float kToppledTankRadius = kTankDiameter * 4;
+
+	const int kScale = 1;
 
 	int playerCarHealth = 100;
 
@@ -166,16 +169,6 @@ void main()
 		wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius - kMarginOfError;
 		wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius + kMarginOfError;
 
-		if (i >= 2 && i < 6)
-		{
-			wallsBoundingBoxes[i].minX = wallsArray[i].x - kPlayerCarRadius - kWallZSize;
-			wallsBoundingBoxes[i].maxX = wallsArray[i].x + kPlayerCarRadius + kWallZSize;
-			wallsBoundingBoxes[i].minY = wallsArray[i].y - kPlayerCarRadius - kMarginOfError;
-			wallsBoundingBoxes[i].maxY = wallsArray[i].y + kPlayerCarRadius + kMarginOfError;
-			wallsBoundingBoxes[i].minZ = wallsArray[i].z - kPlayerCarRadius - kWallXSize;
-			wallsBoundingBoxes[i].maxZ = wallsArray[i].z + kPlayerCarRadius + kWallXSize;
-		}
-
 	}
 
 	//Bounding boxes for isles
@@ -189,23 +182,12 @@ void main()
 		isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadiusIsles - kMarginOfError;
 		isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadiusIsles + kMarginOfError;
 
-		if (i >= 4 && i < 15)
-		{
-			isleBoundingBoxes[i].minX = islesArray[i].x - kPlayerCarRadiusIsles - kIsleZSize;
-			isleBoundingBoxes[i].maxX = islesArray[i].x + kPlayerCarRadiusIsles + kIsleZSize;
-			isleBoundingBoxes[i].minY = islesArray[i].y - kPlayerCarRadiusIsles - kMarginOfError;
-			isleBoundingBoxes[i].maxY = islesArray[i].y + kPlayerCarRadiusIsles + kMarginOfError;
-			isleBoundingBoxes[i].minZ = islesArray[i].z - kPlayerCarRadiusIsles - kIsleXSize;
-			isleBoundingBoxes[i].maxZ = islesArray[i].z + kPlayerCarRadiusIsles + kIsleXSize;
-		}
-		
 	}
 
 	//Bounding boxes for tanks
 	for (int i = 0; i < kTanksNo; i++)
 	{
 		
-
 		tankBoundingBoxes[i].minX = tanksArray[i].x - kPlayerCarRadiusIsles;
 		tankBoundingBoxes[i].maxX = tanksArray[i].x + kPlayerCarRadiusIsles;
 		tankBoundingBoxes[i].minY = tanksArray[i].y - kPlayerCarRadiusIsles;
@@ -401,7 +383,17 @@ void main()
 	const float speed = 0.2f;
 	const float dragFactor = -0.0004f;
 
+	float velocity = momentum.x * kScale;
+
 	CollisionAxis checkAxis;
+
+	bool boost = false;
+	bool boostCooldown = false;
+	
+	bool boostAvailable = true;
+	bool carFloats = true;
+
+	float boostTimer = 0.0f;
 
 	myEngine->Timer();
 	// The main game loop, repeat until engine is stopped
@@ -434,6 +426,12 @@ void main()
 		stringstream timerText;
 		stringstream raceStage;
 		stringstream carHealth;
+		stringstream velocityDisplay;
+
+		
+
+		/* Game States */
+		///////////////////////////////////
 
 		drag = { oldMomentum.x * dragFactor, oldMomentum.y * dragFactor, oldMomentum.z * dragFactor };
 
@@ -444,8 +442,6 @@ void main()
 
 		carModel->Move(momentum.x* frameTime, momentum.y* frameTime, momentum.z* frameTime);
 
-		/* Game States */
-		///////////////////////////////////
 
 		if (gameState == Waiting)
 		{
@@ -506,6 +502,9 @@ void main()
 			gameStateText << "Status: Racing";
 			movementSpeed = kMovementSpeed;
 			carHealth << "Car HP" << playerCarHealth;
+			velocityDisplay << velocity;
+
+			font24->Draw(velocityDisplay.str(), 0, 450, kBlack);
 
 			if (raceState == StageOneComplete)
 			{
@@ -529,7 +528,53 @@ void main()
 
 			}
 
+			if (boost && !boostCooldown && boostAvailable)
+			{
+				boostTimer += frameTime;
 
+				if (boostTimer < 1)
+				{
+
+					timerText << "Boosters overheating in 3 seconds!";
+					font24->Draw(timerText.str(), 0, 600, kBlack);
+
+				}
+
+				if (boostTimer < 2 && boostTimer > 1)
+				{
+
+					timerText << "Boosters overheating in 2 seconds!";
+					font24->Draw(timerText.str(), 0, 600, kBlack);
+				}
+
+				if (boostTimer < 3 && boostTimer > 2)
+				{
+
+					timerText << "Boosters overheating in 1 second!";
+					font24->Draw(timerText.str(), 0, 600, kBlack);
+
+				}
+				if (boostTimer > 3 && boostTimer < 4)
+				{
+					timerText << "Boosters overheated!";
+					font24->Draw(timerText.str(), 0, 600, kBlack);
+					boostCooldown = true;
+					boost = false;
+					timePassed = 0;
+				}
+
+			}
+
+			if (timePassed < 5)
+			{
+				timerText << "Boosters overheated!";
+			}
+
+			if (timePassed > 5)
+			{
+				boostCooldown = false;
+
+			}
 
 			/* Collision checks */
 			///////////////////////////////////
@@ -566,7 +611,6 @@ void main()
 			else if (checkPointCrossed == checkpointIdentity[4] && raceState == StageFourComplete)
 			{
 				gameState = GameWon;
-
 			}
 
 
@@ -575,19 +619,28 @@ void main()
 
 			for (int i = 0; i < kCheckpointNo; i++)
 			{
-				if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, rightStrut[i], 1.0f))
+				if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, rightStrut[i], 1.25f))
 				{
+					carModel->SetPosition(oldCarPos.x, oldCarPos.y, oldCarPos.z);
+					momentum.z *= (-1.25f * 0.5f);
+					momentum.x *= (-1.25f * 0.5f);
+					carModel->Move(momentum.x* frameTime, momentum.y* frameTime, momentum.z* frameTime);
+					playerCarHealth --;
 					raceStage << "Crashed!!!";
-					playerCarHealth -= 1;
 					
 				}
 
-				if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, leftStrut[i], 1.0f))
+				if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, leftStrut[i], 1.25f))
 				{
+					carModel->SetPosition(oldCarPos.x, oldCarPos.y, oldCarPos.z);
+					momentum.z *= (-1.25f * 0.5f);
+					momentum.x *= (-1.25f * 0.5f);
+					carModel->Move(momentum.x* frameTime, momentum.y* frameTime, momentum.z* frameTime);
+					playerCarHealth--;
 					raceStage << "Crashed!!!";
-					playerCarHealth -= 1;
 					
 				}
+				
 			}
 
 			/* Tanks collision checks */
@@ -596,17 +649,26 @@ void main()
 			{
 				if (i == 17 && SphereToSphereCollision(playerCarVector, kPlayerCarRadius, tanksArray[i], kToppledTankRadius))
 				{
+					carModel->SetPosition(oldCarPos.x, oldCarPos.y, oldCarPos.z);
+					momentum.z *= (-1.25f * 0.5f);
+					momentum.x *= (-1.25f * 0.5f);
+					carModel->Move(momentum.x * frameTime, momentum.y * frameTime, momentum.z * frameTime);
+					playerCarHealth--;
 					raceStage << "Crashed!!!";
-					playerCarHealth -= 1;
 					
 				}
 
 				if (SphereToSphereCollision(playerCarVector, kPlayerCarRadius, tanksArray[i], kTankDiameter))
 				{
+					carModel->SetPosition(oldCarPos.x, oldCarPos.y, oldCarPos.z);
+					momentum.z *= (-1.25f * 0.5f);
+					momentum.x *= (-1.25f * 0.5f);
+					carModel->Move(momentum.x* frameTime, momentum.y* frameTime, momentum.z* frameTime);
+					playerCarHealth--;
 					raceStage << "Crashed!!!";
-					playerCarHealth -= 1;
 					
 				}
+				
 			}
 
 			/* Isle collision checks */
@@ -615,13 +677,14 @@ void main()
 			{
 				checkAxis = sphereToBoxCollision(oldCarPos, isleBoundingBoxes[i]);
 
+				
 				if (checkAxis == xAxis)
 				{
 					carModel->SetPosition(oldCarPos.x, oldCarPos.y, oldCarPos.z);
 					momentum.z *= (-1.0f * 0.5f);
 					carModel->Move(momentum.x * frameTime, momentum.y * frameTime, momentum.z * frameTime);
-					playerCarHealth -= 1;
-
+					playerCarHealth --;
+					raceStage << "Crashed!!!";
 				}
 
 				else if (checkAxis == zAxis)
@@ -629,9 +692,14 @@ void main()
 					carModel->SetPosition(oldCarPos.x, oldCarPos.y, oldCarPos.z);
 					momentum.x *= (-1.0f * 0.5f);
 					carModel->Move(momentum.x * frameTime, momentum.y * frameTime, momentum.z * frameTime);
-					playerCarHealth -= 1;
+					playerCarHealth --;
+					raceStage << "Crashed!!!";
 				}
+				
+				
 			}
+
+			
 
 			/* Wall collision checks */
 
@@ -639,12 +707,14 @@ void main()
 			{
 				checkAxis = sphereToBoxCollision(oldCarPos, wallsBoundingBoxes[i]);
 
+				
 				if (checkAxis == xAxis)
 				{
 					carModel->SetPosition(oldCarPos.x, oldCarPos.y, oldCarPos.z);
 					momentum.z *= (-1.0f * 0.5f);
 					carModel->Move(momentum.x * frameTime, momentum.y * frameTime, momentum.z * frameTime);
 					playerCarHealth -= 1;
+					raceStage << "Crashed!!!";
 				}
 
 				else if (checkAxis == zAxis)
@@ -653,14 +723,40 @@ void main()
 					momentum.x *= (-1.0f * 0.5f);
 					carModel->Move(momentum.x * frameTime, momentum.y * frameTime, momentum.z * frameTime);
 					playerCarHealth -= 1;
+					raceStage << "Crashed!!!";
 				}
+				
+				
 			}
 			
 			/* Car health Mechanics */
 
+			if (carFloats)
+			{
+
+				/*if (carModel->GetY() < 0.5)
+				{
+					carModel->MoveY(0.05 * frameTime);
+					
+				}
+
+				else if (carModel->GetY() > 0.5 && carModel->GetY() < 0.1)
+				{
+					carModel->MoveY(-0.15 * frameTime);
+					
+				}*/
+				
+			}
+
+			if (playerCarHealth <= 30)
+			{
+				boostAvailable = false;
+				carFloats = false;
+			}
+
 			if (playerCarHealth <= 0)
 			{
-				/*gameState = GameLost;*/
+				gameState = GameLost;
 			}
 			
 		}
@@ -673,20 +769,37 @@ void main()
 
 		if (gameState == GameLost)
 		{
-			movementSpeed = 0;
 			gameStateText << "Status: GameLost";
 		}
 
 
 		//Key controls for playerCar
-		if (myEngine->KeyHeld(Key_W))
+		if (myEngine->KeyHeld(Key_W) && gameState == Racing)
 		{
-			thrust = { localZ.x * speed, localZ.y * speed, localZ.z * speed };
+			if (boost)
+			{
+				thrust = { (localZ.x * speed) * 1.5f, (localZ.y * speed) * 1.5f, (localZ.z * speed) * 1.5f };
+			}
+
+			else
+			{
+				thrust = { localZ.x * speed, localZ.y * speed, localZ.z * speed };
+			}
+			
 		}
 
-		else if (myEngine->KeyHeld(Key_S))
+		else if (myEngine->KeyHeld(Key_S) && gameState == Racing)
 		{
-			thrust = { localZ.x * -speed, localZ.y * -speed, localZ.z * -speed };
+			if (boost)
+			{
+				thrust = { (localZ.x * -speed) * 1.5f, (localZ.y * -speed) * 1.5f, (localZ.z * -speed) * 1.5f };
+			}
+
+			else
+			{
+				thrust = { localZ.x * -speed, localZ.y * -speed, localZ.z * -speed };
+			}
+			
 		}
 
 		else 
@@ -694,14 +807,16 @@ void main()
 			thrust = { 0,0,0 };
 		}
 
-		if (myEngine->KeyHeld(Key_A))
+		if (myEngine->KeyHeld(Key_A) && gameState == Racing)
 		{
 			carModel->RotateLocalY(movementSpeed * frameTime * kNegativeDirection);
+			
 		}
 
-		if (myEngine->KeyHeld(Key_D))
+		if (myEngine->KeyHeld(Key_D) && gameState == Racing)
 		{
 			carModel->RotateLocalY(movementSpeed * frameTime);
+			
 		}
 
 		if (myEngine->KeyHit(Key_Space))
@@ -713,19 +828,19 @@ void main()
 
 				gameState = Countdown;
 
-
 			}
+
+			
+		}
+
+		if (myEngine->KeyHeld(Key_Space) && gameState == Racing && !boostCooldown && boostAvailable)
+		{
+			boost = true;
+			
 		}
 
 		
-
 		
-
-		
-
-
-		
-
 		oldMomentum = momentum;
 
 		//Key controls for Camera
